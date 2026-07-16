@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VibeSafely
 
-## Getting Started
+Security scanner for AI-built ("vibe-coded") apps. Paste a URL → a graded report of
+exposed secrets, open Supabase/Firebase databases, leaked `.env`/`.git` files, and missing
+security headers.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Next.js 16 (App Router, TypeScript) · Tailwind v4 · vitest · Supabase (auth + Postgres) ·
+Stripe (billing).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `npm run dev`: dev server (picks the next free port if 3000 is taken)
+- `npm run build`: production build
+- `npm test`: unit tests (vitest)
+- `npm run typecheck`: `tsc --noEmit`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scan tiers
 
-## Learn More
+- **Surface scan** — free, unlimited, no account. Passive checks only; the report shows
+  every issue by name, severity, and grade, but the explanation + fix are locked.
+- **Full scan** — requires an account (signing in is the ownership consent). Runs the
+  active/deep checks too and unlocks the full report (detail + AI fix prompt + patch).
+  Metered by credits: **3 free on signup → £9 for 15 credits → £19/mo unlimited** (the
+  monthly plan also unlocks continuous monitoring, which is not built yet). Quotas are
+  enforced server-side; the browser can never grant itself a plan or credits.
 
-To learn more about Next.js, take a look at the following resources:
+## Setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Copy `.env.example` to `.env.local` and fill in Supabase + Stripe values.
+2. **Supabase:** create a project, then run the SQL in `supabase/migrations/` (SQL Editor
+   or `supabase db push`). This creates `profiles` / `scan_events` / `processed_stripe_events`,
+   the RLS policies, the signup trigger (grants 3 credits), and the credit RPCs.
+3. **Stripe:** create a one-time price (£9, 15 credits) and a recurring price (£19/mo), put
+   their IDs in `.env.local`, and run `stripe listen --forward-to localhost:3000/api/stripe/webhook`
+   to get `STRIPE_WEBHOOK_SECRET` for local testing.
+4. `npm run dev`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scan engine (`src/lib/scan/`)
 
-## Deploy on Vercel
+Pure and server-side, with a dependency-injected `fetch` so every check is unit-tested
+without real network access.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `gatherContext`: fetches the target's HTML + JS bundles once; detects Supabase/Firebase
+- `checks/`: **passive** (`bundle-secrets`, `exposed-files`, `security-headers`) always run;
+  **active** (`supabase-rls`, `firebase-rules`, `storage-buckets`) run only on a full scan
+- `runner`: orchestrates checks, scores 0–100 → grade A–F
+- `gating`: server-side locked/unlocked paywall (locked reports never receive the fix text)
+- `safety`: SSRF guard (blocks localhost / private / metadata / non-http targets)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Accounts & billing (`src/lib/`)
+
+- `supabase/{server,browser,admin}.ts`: SSR / browser / service-role clients
+- `dal.ts`: `getUser` + `getEntitlements` (session-validated, `cache()`-memoized)
+- `billing/{entitlements,plans}.ts`: pure entitlement→plan mapping and Stripe price→grant map
+- `stripe/server.ts`: Stripe client + one-customer-per-user helper
+- `app/api/stripe/webhook`: idempotent credit grants + subscription sync
+
+## Ethics
+
+Defensive, authorized use only. Scan apps you own. The active database checks require an
+account and use only the app's own publicly-shipped keys. We never store user keys. If you
+find a specific third-party app leaking, disclose it privately.

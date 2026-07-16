@@ -1,26 +1,623 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* Fonts resolve via CSS vars set on <html> by next/font, so they must be `inline`. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage), var(--font-hanken), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* The design system. Plain `@theme` emits :root custom properties, so the utilities and
+   keyframes below build on the palette.
+
+   The idea: one soft, living dawn (the aurora, rendered in <AuroraBackground>) carries all
+   the colour and all the feeling. Everything drawn on top of it stays calm, spacious and
+   quiet: safety that feels *good*, not a threat console. */
+@theme {
+  /* Surfaces: a soft indigo night, cool enough that the dawn aurora reads as light, not
+     paint. Kept solid so dense report content stays readable over the colour; the landing
+     cards get their glassy translucency from `.card-soft` alone. */
+  --color-canvas: #0b0a14;
+  --color-surface: #17152b;
+  --color-surface-2: #201d38;
+  --color-well: #0a0912;
+  --color-border: #2c2947;
+  --color-border-strong: #3c3760;
+  --color-hairline: #221f3a;
+
+  /* Text: a soft warm-white with the faintest lavender. Calm, never cold zinc. */
+  --color-ink: #f3f1fb;
+  --color-ink-muted: #b6b1cf;
+  --color-ink-dim: #857f9c;
+  --color-ink-faint: #4d486a;
+
+  /* Severity: the report's functional language. Kept intact so a real finding still
+     reads at a glance; the landing leads with the calm aurora, not with red. */
+  --color-critical: #f2554d;
+  --color-high: #f5893d;
+  --color-medium: #f0b03a;
+  --color-low: #e3cf5a;
+  --color-pass: #4ad991;
+
+  /* Brand accents drawn from the dawn: magenta is the interactive hue (links, focus rings,
+     the primary action), violet and cyan are its soft neighbours. Used with restraint.
+     The aurora already carries the colour. */
+  --color-accent: #e879f9;
+  --color-accent-2: #a78bfa;
+  --color-accent-ink: #240a2a;
+  --color-live: #56d6e6;
+
+  /* Type scale, semantic roles, each paired with its line-height. */
+  --text-display: 3.25rem;
+  --text-display--line-height: 1.03;
+  --text-title: 1.85rem;
+  --text-title--line-height: 1.12;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.3;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.65;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.55;
+  --text-mono: 0.75rem;
+  --text-mono--line-height: 1.55;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1;
+
+  /* Radii: soft and friendly now, not the old tight "document" corners. Round reads as
+     approachable and safe. */
+  --radius-sm: 6px;
+  --radius-md: 11px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  /* Tracking */
+  --tracking-tight: -0.02em;
+  --tracking-label: 0.06em;
+}
+
+:root {
+  color-scheme: dark;
+  /* An opaque canvas fallback painted at the very back: the aurora (a fixed element with a
+     negative z-index) paints on top of it, so there's no flash before the shader mounts. */
+  background-color: var(--color-canvas);
+  /* Clip (not hide) horizontal overflow so the fixed full-viewport aurora can never produce
+     a horizontal scrollbar. `clip`, unlike `hidden`, keeps the sticky header working. */
+  overflow-x: clip;
+
+  /* The dawn: cool cyan → violet → magenta → warm peach. The single gradient the whole
+     brand is built from, reused for accent text and the primary action. */
+  --gradient-dawn: linear-gradient(
+    100deg,
+    #56d6e6 0%,
+    #a78bfa 36%,
+    #e879f9 64%,
+    #ffb38a 100%
+  );
+
+  /* A muted still of the living aurora: the DAWN palette (cyan → violet → magenta → warm
+     peach) melting into indigo night at the edges. Softer and darker than --gradient-dawn
+     (which is tuned for text/buttons) so it reads as the same calm dawn the WebGL mesh
+     paints. This is drawn instantly in the SSR HTML as the aurora's first frame and the
+     crossfade floor, and it's the *only* background under prefers-reduced-motion. */
+  --gradient-aurora-still: radial-gradient(
+    125% 125% at 50% 0%,
+    #56d6e6 0%,
+    #7c3aed 30%,
+    #e879f9 52%,
+    #ff9d8a 70%,
+    #2a1a5e 88%,
+    #0b0a14 100%
+  );
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── The one signature: dawn colour. A gradient lifted straight from the aurora, used on
+   the single most important phrase and the primary action, and nowhere else. ─────────── */
+.text-dawn {
+  background-image: var(--gradient-dawn);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* The primary action wears the dawn: a soft luminous gradient with a gentle bloom, dark
+   ink for contrast. The one warm, colourful control on an otherwise quiet page. */
+.btn-dawn {
+  background-image: var(--gradient-dawn);
+  color: #1c0a26;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 8px 24px -10px rgba(232, 121, 249, 0.55);
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.2s ease,
+    filter 0.25s ease;
+}
+.btn-dawn:hover {
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 12px 30px -10px rgba(232, 121, 249, 0.7);
+}
+.btn-dawn:active {
+  transform: translateY(0.5px);
+}
+
+/* A soft-glass panel: a translucent surface that lets the aurora breathe through, a hairline,
+   and a whisper of top light. Elevation is never a heavy blur shadow; the aurora is the
+   depth. (Translucency lives here, not on the token, so the report's raw surfaces stay
+   solid and readable.) */
+.card-soft {
+  position: relative;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 84%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+/* A faint dawn horizon crowning every surface: the aurora's own cyan→magenta→peach drawn
+   as a hairline that fades at both ends. One quiet synthwave echo, repeated across the cards
+   so it reads as a system, not decoration. */
+.card-soft::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 0;
+  height: 1px;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.25s ease;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(86, 214, 230, 0.5) 28%,
+    rgba(232, 121, 249, 0.6) 52%,
+    rgba(255, 179, 138, 0.42) 74%,
+    transparent 100%
+  );
+}
+.card-lift {
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  /* the lift blooms into the dawn: a soft magenta glow with a cooler cyan underneath */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 42px -24px rgba(232, 121, 249, 0.42),
+    0 12px 34px -22px rgba(86, 214, 230, 0.3);
+}
+.card-lift:hover::before {
+  opacity: 1;
+}
+
+/* ── Motion. Gentle reveals as content arrives, the demo's own scan feedback, and the
+   aurora's slow drift: nothing that pulses, sweeps or scans at the visitor. ─────────── */
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.reveal {
+  animation: reveal-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* A finding easing into the report as the demo scan discovers it. */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.reveal-in {
+  animation: reveal-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* The grade settling in once the demo scan resolves. */
+@keyframes grade-land {
+  from {
+    opacity: 0;
+    transform: scale(1.14);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.grade-land {
+  animation: grade-land 0.5s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+/* The grade tile while the demo scan is still running. */
+@keyframes scan-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+.scan-pulse {
+  animation: scan-pulse 1.2s ease-in-out infinite;
+}
+
+/* The soft caret on the demo's active scan line. */
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+.caret {
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+/* A shimmer traveling the demo's progress bar while the scan runs. */
+@keyframes progress-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.progress-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.progress-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  animation: progress-shimmer 1.4s ease-in-out infinite;
+}
+
+/* A soft breathing ring around the grade tile while its verdict is pending. */
+@keyframes tile-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(86, 214, 230, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(86, 214, 230, 0.12);
+  }
+}
+.tile-breathe {
+  animation: tile-breathe 1.9s ease-in-out infinite;
+}
+
+/* ── The attack-surface map: quiet life on the depth axis. The nodes breathe like a live
+   scanner (staggered, so it reads as a wave down the layers); a dawn pulse descends the axis
+   once when the section scrolls into view. ──────────────────────────────────────────────── */
+/* The scan beam: a glowing orb that travels the depth axis from the first node to the last,
+   pinging each layer's node exactly as it arrives and swelling the line as it passes. The
+   orb's position and every ping are driven together in JS (node positions are measured), so
+   the CSS here is just the resting look plus the one-shot "hit" a node plays on contact. */
+.axis-node {
+  position: relative;
+  box-shadow: 0 0 8px -2px rgba(232, 121, 249, 0.55);
+}
+/* the sonar ring: quiet until the beam reaches this node (JS toggles .is-ping) */
+.axis-node::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(232, 121, 249, 0.6);
+  opacity: 0;
+  transform: scale(0.55);
+  pointer-events: none;
+}
+.axis-node.is-ping::after {
+  animation: node-ping 0.9s ease-out;
+}
+.axis-node.is-ping {
+  animation: node-hit 0.9s ease-out;
+}
+@keyframes node-ping {
+  0% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+@keyframes node-hit {
+  0%,
+  100% {
+    box-shadow: 0 0 8px -2px rgba(232, 121, 249, 0.55);
+  }
+  22% {
+    box-shadow: 0 0 18px 2px rgba(232, 121, 249, 1);
+  }
+}
+
+/* the travelling beam: a bright core with a vertical "bulge" that thickens the line it rides */
+.scan-beam {
+  position: absolute;
+  left: 0.5rem;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.scan-beam-bulge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 34px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(86, 214, 230, 0.5),
+    rgba(232, 121, 249, 0.6),
+    transparent
+  );
+  filter: blur(1px);
+}
+.scan-beam-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, #ffffff, rgba(232, 121, 249, 0.6) 46%, transparent 72%);
+  box-shadow:
+    0 0 14px 5px rgba(232, 121, 249, 0.5),
+    0 0 24px 10px rgba(86, 214, 230, 0.26);
+}
+
+/* ── The AI attack console: a live session that never sits still. A bright scan-light sweeps
+   it end to end, a throughput meter runs in the header, the hijacked reply types itself on a
+   loop, the verdict breathes red, and the whole console glows in and out, so it reads as
+   actively working even when nobody's touching it. All CSS, all passive. ────────────────── */
+.ai-console {
+  animation: console-glow 4.5s ease-in-out infinite;
+}
+@keyframes console-glow {
+  0%,
+  100% {
+    box-shadow: 0 24px 60px -30px rgba(167, 139, 250, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 24px 60px -28px rgba(167, 139, 250, 0.62),
+      0 0 26px -8px rgba(86, 214, 230, 0.28);
+  }
+}
+
+/* The probe works down the findings on a shared 9s loop: each finding's verdict gives a small
+   "found it" flick at its own offset (--seq-delay), so the eye is drawn one hole to the next
+   without any decorative sweep. Kept subtle on purpose. */
+.verdict {
+  animation: verdict-pop 9s ease-out infinite;
+  animation-delay: var(--seq-delay, 0s);
+}
+@keyframes verdict-pop {
+  0% {
+    transform: scale(1);
+  }
+  2.5% {
+    transform: scale(1.05);
+  }
+  7% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* the hijacked reply types itself out as the probe reaches the injection finding (its
+   --seq-delay), then holds: the model generating its compromised answer on cue */
+.type-canary {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  animation: type-canary 9s steps(11, end) infinite;
+  animation-delay: var(--seq-delay, 0s);
+}
+@keyframes type-canary {
+  0% {
+    width: 0;
+  }
+  15% {
+    width: 11ch;
+  }
+  100% {
+    width: 11ch;
+  }
+}
+
+/* header throughput meter: three little bars running like live traffic */
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.72rem;
+}
+.eq i {
+  width: 2px;
+  border-radius: 1px;
+  background: var(--color-live);
+  transform-origin: bottom;
+  animation: eq 0.9s ease-in-out infinite;
+}
+.eq i:nth-child(1) {
+  height: 45%;
+  animation-delay: 0s;
+}
+.eq i:nth-child(2) {
+  height: 100%;
+  animation-delay: 0.18s;
+}
+.eq i:nth-child(3) {
+  height: 65%;
+  animation-delay: 0.34s;
+}
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Scroll-reveal: content eases in as it enters the viewport. Default is visible (so no-JS
+   and SEO get the full page); the client hides then reveals it. */
+.reveal-on-scroll {
+  transition:
+    opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.reveal-on-scroll:not(.is-visible) {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-in,
+  .grade-land,
+  .scan-pulse,
+  .caret,
+  .progress-shimmer::after,
+  .tile-breathe,
+  .ai-console,
+  .verdict,
+  .type-canary,
+  .eq i {
+    animation: none;
+  }
+  .eq i {
+    transform: none;
+  }
+  /* the scan beam is JS-driven and skipped under reduced motion, but guard it anyway */
+  .axis-node.is-ping::after,
+  .axis-node.is-ping {
+    animation: none;
+  }
+  .scan-beam {
+    opacity: 0 !important;
+  }
+  /* show the hijacked reply in full (no typing) */
+  .type-canary {
+    width: auto;
+  }
+  .reveal-on-scroll {
+    transition: none;
+  }
+  .reveal-on-scroll:not(.is-visible) {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── The honesty ledger: two verdicts graded on one app. Most scanners round every line up to
+   green in one stamp; VibeSafely ticks only what it reached, one line at a time, then withholds
+   the letter grade. The motion IS that difference, replayed on a shared 9s loop: the left column
+   (all --seq-delay 0.5s) flashes at once, the right column resolves in sequence and its withheld
+   grade settles last. Nothing is ever hidden, so it stays legible; reduced-motion shows the final
+   verdicts, still. ──────────────────────────────────────────────────────────────────────────── */
+
+/* a check/dash getting marked: a small pop as the grader lands on the line */
+.grade-mark {
+  display: inline-block;
+  animation: grade-mark 9s ease-out infinite;
+  animation-delay: var(--seq-delay, 0s);
+}
+@keyframes grade-mark {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  3% {
+    transform: scale(1.16);
+  }
+  9% {
+    transform: scale(1);
+  }
+}
+
+/* the two grade tiles landing: the rounded-up A+ pops up fast (glib), the withheld grade settles
+   in gently once its column has finished (deliberate), same keyframe, different --seq-delay */
+.grade-slip {
+  animation: grade-slip 9s cubic-bezier(0.2, 0.85, 0.25, 1) infinite;
+  animation-delay: var(--seq-delay, 0s);
+}
+@keyframes grade-slip {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  3% {
+    transform: translateY(-2px) scale(1.05);
+  }
+  9% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* a quiet pulse in the report header, so the looping pass reads as an active re-grade */
+.grading-dot {
+  animation: grading-dot 2.2s ease-in-out infinite;
+}
+@keyframes grading-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grade-mark,
+  .grade-slip,
+  .grading-dot {
+    animation: none;
+  }
 }
