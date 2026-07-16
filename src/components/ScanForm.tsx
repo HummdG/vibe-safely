@@ -2,32 +2,32 @@
 
 import { useState, type FormEvent } from "react";
 
+export type ScanMode = "surface" | "full";
+
 export interface ScanRequest {
   url: string;
-  owner: boolean;
-  previewPro: boolean;
+  mode: ScanMode;
 }
 
-// The input that drives the scanner window. It collects the URL + options and hands them
-// up to the stage, which runs the scan and renders the result in the one window. The form
-// keeps no result of its own; there's a single place a scan is shown.
+// The input that drives the scanner window. It collects the URL and hands it up to the stage
+// with the chosen depth: a free surface scan (primary), or a metered full scan (needs an
+// account). The form keeps no result of its own; there's a single place a scan is shown.
 export function ScanForm({
   onScan,
   pending,
   error,
+  errorCta,
 }: {
   onScan: (req: ScanRequest) => void;
   pending: boolean;
   error?: string | null;
+  errorCta?: { href: string; label: string } | null;
 }) {
   const [url, setUrl] = useState("");
-  const [owner, setOwner] = useState(false);
-  const [previewPro, setPreviewPro] = useState(false);
-  const isDev = process.env.NODE_ENV !== "production";
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    onScan({ url, owner, previewPro });
+    onScan({ url, mode: "surface" });
   }
 
   return (
@@ -55,35 +55,33 @@ export function ScanForm({
           </button>
         </div>
 
-        <label className="flex cursor-pointer items-start gap-2.5 text-meta leading-relaxed text-ink-muted">
-          <input
-            type="checkbox"
-            checked={owner}
-            onChange={(e) => setOwner(e.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-accent"
-          />
-          <span>
-            I own this app. Enables the deep checks: Supabase and Firebase access, plus a couple
-            of harmless prompt-injection probes to your AI endpoint. Only scan apps you own.
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-meta leading-relaxed">
+          <button
+            type="button"
+            onClick={() => onScan({ url, mode: "full" })}
+            disabled={pending}
+            className="font-semibold text-accent underline-offset-4 hover:underline disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+          >
+            Run a full scan →
+          </button>
+          <span className="text-ink-muted">
+            Adds the deep checks (Supabase, Firebase, AI probes) and unlocks every fix. Needs an
+            account; only scan apps you own.
           </span>
-        </label>
-
-        {isDev && (
-          <label className="flex cursor-pointer items-center gap-2.5 text-meta text-ink-dim">
-            <input
-              type="checkbox"
-              checked={previewPro}
-              onChange={(e) => setPreviewPro(e.target.checked)}
-              className="h-4 w-4 accent-accent"
-            />
-            <span>Preview Pro (dev only): unlock the full fix panel for every finding.</span>
-          </label>
-        )}
+        </div>
       </form>
 
       {error && (
         <p className="mt-3 rounded-md border border-critical/40 bg-critical/10 px-4 py-3 text-meta text-critical">
           {error}
+          {errorCta && (
+            <>
+              {" "}
+              <a href={errorCta.href} className="font-semibold underline underline-offset-2">
+                {errorCta.label}
+              </a>
+            </>
+          )}
         </p>
       )}
     </div>

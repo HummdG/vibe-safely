@@ -1,4 +1,4 @@
-import type { Finding } from "@/lib/scan/types";
+import type { Finding } from "@vibesafely/scan-core";
 import { CopyButton } from "../CopyButton";
 
 // The remediation the tool generates: a copy-ready AI prompt + a canonical before→after

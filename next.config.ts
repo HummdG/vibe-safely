@@ -25,6 +25,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The scan engine lives in the @vibesafely/scan-core workspace package (shared with the
+  // MCP server). Turbopack auto-transpiles workspace packages; this is explicit belt-and-braces.
+  transpilePackages: ["@vibesafely/scan-core"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

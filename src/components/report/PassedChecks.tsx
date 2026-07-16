@@ -1,4 +1,4 @@
-import type { Finding } from "@/lib/scan/types";
+import type { Finding } from "@vibesafely/scan-core";
 import { Panel } from "../ui/Panel";
 
 export function PassedChecks({ items }: { items: Finding[] }) {

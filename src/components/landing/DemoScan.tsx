@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ScanResult } from "@/lib/scan/types";
+import type { ScanResult } from "@vibesafely/scan-core";
 import { EXAMPLE_REPORT } from "@/components/exampleReport";
 import { deriveReport } from "@/components/report/model";
 import { SummaryCard } from "@/components/report/SummaryCard";

@@ -1,4 +1,4 @@
-import type { Severity } from "@/lib/scan/types";
+import type { Severity } from "@vibesafely/scan-core";
 
 export type Fail = Exclude<Severity, "pass">;
 

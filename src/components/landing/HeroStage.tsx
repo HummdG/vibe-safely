@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { ScanResult } from "@/lib/scan/types";
+import { useRouter } from "next/navigation";
+import type { ScanResult } from "@vibesafely/scan-core";
 import { ScanForm, type ScanRequest } from "@/components/ScanForm";
 import { Report } from "@/components/Report";
 import { ReplayIcon } from "@/components/icons";
@@ -17,15 +18,18 @@ type Status = "demo" | "scanning" | "done";
 // lands on the real report: promise and proof in one surface. It stacks to one column on
 // small screens. `pitch` and `strip` are server-rendered (SEO-visible) and handed in.
 export function HeroStage({ pitch, strip }: { pitch: ReactNode; strip: ReactNode }) {
+  const router = useRouter();
   const [status, setStatus] = useState<Status>("demo");
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [remainingCredits, setRemainingCredits] = useState<number | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [errorCta, setErrorCta] = useState<{ href: string; label: string } | null>(null);
   const [domain, setDomain] = useState("");
   const windowRef = useRef<HTMLDivElement>(null);
 
-  async function runScan({ url, owner, previewPro }: ScanRequest) {
-    const isDev = process.env.NODE_ENV !== "production";
+  async function runScan({ url, mode }: ScanRequest) {
     setError(null);
+    setErrorCta(null);
     setResult(null);
     setDomain(prettyDomain(url));
     setStatus("scanning");
@@ -33,20 +37,29 @@ export function HeroStage({ pitch, strip }: { pitch: ReactNode; strip: ReactNode
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          url,
-          ownerConfirmed: owner,
-          ...(isDev && previewPro ? { plan: "pro" } : {}),
-        }),
+        body: JSON.stringify({ url, mode }),
       });
       const data = await res.json();
       if (!res.ok) {
-        // A failed scan is almost always a fixable input (bad or unreachable URL), so send
-        // the visitor back to the form with the reason, and leave the demo running.
+        // A full scan needs an account: send the visitor to sign in, then back here.
+        if (res.status === 401 && data.code === "auth_required") {
+          router.push("/sign-in?next=/");
+          return;
+        }
+        // Out of credits: keep the demo up and point them at the plans.
+        if (res.status === 402 && data.code === "no_credits") {
+          setError("You're out of full-scan credits.");
+          setErrorCta({ href: "/pricing", label: "See plans" });
+          setStatus("demo");
+          return;
+        }
+        // Otherwise it's almost always a fixable input (bad or unreachable URL), so send the
+        // visitor back to the form with the reason, and leave the demo running.
         setError(data.error || "Scan failed.");
         setStatus("demo");
       } else {
         setResult(data as ScanResult);
+        setRemainingCredits(data.remainingCredits);
         setStatus("done");
       }
     } catch {
@@ -58,6 +71,7 @@ export function HeroStage({ pitch, strip }: { pitch: ReactNode; strip: ReactNode
   function reset() {
     setResult(null);
     setError(null);
+    setErrorCta(null);
     setStatus("demo");
   }
 
@@ -86,7 +100,12 @@ export function HeroStage({ pitch, strip }: { pitch: ReactNode; strip: ReactNode
         />
         {pitch}
         <div className="reveal mx-auto mt-9 w-full max-w-md text-left lg:mx-0" style={{ animationDelay: "240ms" }}>
-          <ScanForm onScan={runScan} pending={status === "scanning"} error={error} />
+          <ScanForm
+            onScan={runScan}
+            pending={status === "scanning"}
+            error={error}
+            errorCta={errorCta}
+          />
         </div>
         {strip}
       </div>
@@ -105,7 +124,13 @@ export function HeroStage({ pitch, strip }: { pitch: ReactNode; strip: ReactNode
           >
             <Report result={result} />
             <div className="mt-3 flex items-center justify-between gap-3 border-t border-hairline pt-3">
-              <span className="font-mono text-mono text-ink-dim">↑ scan another app</span>
+              <span className="font-mono text-mono text-ink-dim">
+                {typeof remainingCredits === "number"
+                  ? `${remainingCredits} full-scan credit${remainingCredits === 1 ? "" : "s"} left`
+                  : remainingCredits === null
+                    ? "Unlimited full scans"
+                    : "↑ scan another app"}
+              </span>
               <button
                 type="button"
                 onClick={reset}

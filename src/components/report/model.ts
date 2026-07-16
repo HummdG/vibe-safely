@@ -1,4 +1,4 @@
-import type { ScanResult } from "@/lib/scan/types";
+import type { ScanResult } from "@vibesafely/scan-core";
 import { RANK } from "./severity";
 
 // The single derivation of a report's view-model, shared by the full <Report> (live

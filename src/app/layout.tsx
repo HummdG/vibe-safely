@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Bricolage_Grotesque, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
-import { LogoMark } from "@/components/icons";
 import { SealingLock } from "@/components/ui/SealingLock";
 import { AuroraBackground } from "@/components/AuroraBackground";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 // Display face: a warm, characterful grotesque with real personality, deliberately not
@@ -64,24 +64,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <AuroraBackground />
 
-        <header className="sticky top-0 z-30 border-b border-hairline bg-canvas/60 backdrop-blur-md">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-            <Link href="/" className="group flex items-center gap-2.5" aria-label="VibeSafely home">
-              <LogoMark />
-              <span className="font-display text-body font-bold tracking-tight text-ink">
-                VibeSafely
-              </span>
-            </Link>
-            <nav className="flex items-center gap-7 text-meta font-medium text-ink-muted">
-              <Link href="/" className="transition-colors hover:text-ink">
-                Scan
-              </Link>
-              <Link href="/pricing" className="transition-colors hover:text-ink">
-                Pricing
-              </Link>
-            </nav>
-          </div>
-        </header>
+        <SiteHeader />
 
         <div className="flex-1">{children}</div>
 

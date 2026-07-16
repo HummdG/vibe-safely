@@ -1,4 +1,4 @@
-import type { ScanResult } from "@/lib/scan/types";
+import type { ScanResult } from "@vibesafely/scan-core";
 import { deriveReport } from "./report/model";
 import { SummaryCard } from "./report/SummaryCard";
 import { CoveragePanel } from "./report/CoveragePanel";

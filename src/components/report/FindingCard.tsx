@@ -1,4 +1,4 @@
-import type { Finding } from "@/lib/scan/types";
+import type { Finding } from "@vibesafely/scan-core";
 import type { Fail } from "./severity";
 import { SEV, SEV_LABEL } from "./severity";
 import { LockIcon } from "../icons";

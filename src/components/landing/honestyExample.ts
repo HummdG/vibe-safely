@@ -1,4 +1,4 @@
-import type { ScanResult } from "@/lib/scan/types";
+import type { ScanResult } from "@vibesafely/scan-core";
 
 // A full (owned) scan that found nothing exposed to test, so VibeSafely refuses a
 // letter grade rather than rounding up to a green checkmark. Rendered through the real

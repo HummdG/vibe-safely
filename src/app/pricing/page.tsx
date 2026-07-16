@@ -1,132 +1,147 @@
-import { Fragment } from "react";
 import type { Metadata } from "next";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Button } from "@/components/ui/Button";
 import { Reveal } from "@/components/ui/Reveal";
-import { UpgradeButton } from "@/components/UpgradeButton";
+import { CheckoutButton } from "@/components/CheckoutButton";
+import { isStripeConfigured } from "@/lib/stripe/server";
+import { startCreditCheckout, startSubscriptionCheckout } from "@/app/actions/billing";
 
 export const metadata: Metadata = { title: "Pricing" };
 
-// The pricing table mirrors the report's own coverage panel: a ledger of capabilities
-// grouped by the phase of work they belong to, so pricing reads like the product.
-const PHASES: { label: string; rows: { label: string; free: boolean; pro: boolean }[] }[] = [
+type Plan = {
+  name: string;
+  price: string;
+  cadence: string;
+  tagline: string;
+  features: string[];
+  highlighted?: boolean;
+};
+
+const PLANS: Plan[] = [
   {
-    label: "Detection",
-    rows: [
-      { label: "Unlimited surface scans", free: true, pro: true },
-      { label: "Every issue by name and severity", free: true, pro: true },
-      { label: "An A–F grade on apps you own", free: true, pro: true },
-      { label: "Hardening tips, with fixes", free: true, pro: true },
+    name: "Free",
+    price: "£0",
+    cadence: "forever",
+    tagline: "Try it on any app, no account.",
+    features: [
+      "Unlimited surface scans",
+      "Every issue by name and severity",
+      "An A–F grade",
+      "Hardening tips",
     ],
   },
   {
-    label: "Explanation",
-    rows: [
-      { label: "Full explanation for every vulnerability", free: false, pro: true },
-      { label: "Masked evidence for each finding", free: false, pro: true },
+    name: "Credits",
+    price: "£9",
+    cadence: "one-off",
+    tagline: "For shipping a few real fixes.",
+    features: [
+      "15 full scans",
+      "Deep checks: Supabase, Firebase, AI probes",
+      "Full detail + masked evidence",
+      "Copy-ready AI fix prompt + patch",
+      "Credits never expire",
     ],
   },
   {
-    label: "Remediation",
-    rows: [
-      { label: "Copy-ready AI fix prompt per issue", free: false, pro: true },
-      { label: "A before → after patch per issue", free: false, pro: true },
-    ],
-  },
-  {
-    label: "Monitoring",
-    rows: [
-      { label: "Continuous monitoring and email alerts", free: false, pro: true },
-      { label: "Shareable report and pass badge", free: false, pro: true },
+    name: "Unlimited",
+    price: "£19",
+    cadence: "per month",
+    tagline: "Ship, then keep it safe.",
+    highlighted: true,
+    features: [
+      "Everything in Credits",
+      "Unlimited full scans",
+      "Continuous monitoring (coming soon)",
+      "Email alerts on new issues (coming soon)",
     ],
   },
 ];
 
-function Cell({ on }: { on: boolean }) {
-  return on ? (
-    <span className="text-pass" aria-label="included">
+function Check() {
+  return (
+    <span className="mt-0.5 shrink-0 text-pass" aria-hidden>
       ✓
     </span>
-  ) : (
-    <span className="text-ink-faint" aria-label="not included">
-      –
+  );
+}
+
+function ComingSoon() {
+  return (
+    <span className="rounded-md border border-border px-3 py-2.5 text-center text-meta font-semibold text-ink-dim">
+      Opens at launch
     </span>
   );
 }
 
 export default function PricingPage() {
+  const stripeReady = isStripeConfigured();
+
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
+    <main className="mx-auto max-w-5xl px-6 py-16 sm:py-24">
       <Reveal className="max-w-2xl">
         <Eyebrow tick="bg-pass">Pricing</Eyebrow>
         <h1 className="mt-4 font-display text-title font-bold tracking-tight text-ink sm:text-[2.25rem]">
-          Find it free. <span className="text-pass">Fix it on Pro.</span>
+          Find it free. <span className="text-pass">Fix it when you&apos;re ready.</span>
         </h1>
         <p className="mt-4 text-body leading-relaxed text-ink-muted">
-          Finding the problem is free, forever. Pro is for shipping the fix and keeping it fixed.
+          Surface scans are free and unlimited. A full scan runs the deep checks and unlocks the
+          fix for every issue. New accounts start with 3 free full scans.
         </p>
       </Reveal>
 
-      <Reveal className="mt-10 overflow-hidden rounded-lg border border-border bg-surface shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="px-5 py-4">
-                <span className="font-mono text-label uppercase tracking-label text-ink-dim">
-                  Capability
+      <Reveal delay={80} className="mt-10 grid gap-4 sm:grid-cols-3">
+        {PLANS.map((plan) => (
+          <div
+            key={plan.name}
+            className={`flex flex-col rounded-lg border bg-surface p-6 ${
+              plan.highlighted ? "border-accent/60 ring-1 ring-accent/20" : "border-border"
+            }`}
+          >
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-display text-body font-bold text-ink">{plan.name}</h2>
+              {plan.highlighted && (
+                <span className="rounded-full bg-accent/15 px-2 py-0.5 font-mono text-mono text-accent">
+                  popular
                 </span>
-              </th>
-              <th className="w-20 px-3 py-4 text-center sm:w-28">
-                <div className="font-display text-body font-bold text-ink">Free</div>
-                <div className="mt-0.5 font-mono text-mono text-ink-dim">£0</div>
-              </th>
-              <th className="w-24 border-l border-border bg-surface-2/50 px-3 py-4 text-center sm:w-32">
-                <div className="font-display text-body font-bold text-ink">Pro</div>
-                <div className="mt-0.5 font-mono text-mono text-accent">£29 · mo</div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {PHASES.map((p) => (
-              <Fragment key={p.label}>
-                <tr className="bg-surface-2/30">
-                  <td
-                    colSpan={3}
-                    className="px-5 pb-1.5 pt-4 font-mono text-label uppercase tracking-label text-ink-dim"
-                  >
-                    {p.label}
-                  </td>
-                </tr>
-                {p.rows.map((r) => (
-                  <tr key={r.label} className="border-t border-hairline">
-                    <td className="px-5 py-2.5 text-meta text-ink-muted">{r.label}</td>
-                    <td className="px-3 py-2.5 text-center">
-                      <Cell on={r.free} />
-                    </td>
-                    <td className="border-l border-border bg-surface-2/50 px-3 py-2.5 text-center">
-                      <Cell on={r.pro} />
-                    </td>
-                  </tr>
-                ))}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </Reveal>
+              )}
+            </div>
+            <div className="mt-3 flex items-baseline gap-1.5">
+              <span className="font-display text-title font-bold text-ink">{plan.price}</span>
+              <span className="font-mono text-mono text-ink-dim">{plan.cadence}</span>
+            </div>
+            <p className="mt-2 text-meta text-ink-muted">{plan.tagline}</p>
 
-      <Reveal delay={80} className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Button href="/#top" variant="ghost" size="lg">
-            Start a free scan
-          </Button>
-          <span className="text-center font-mono text-mono text-ink-dim">No account needed.</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          <UpgradeButton />
-          <span className="text-center font-mono text-mono text-ink-dim">
-            Everything you need to fix what we find.
-          </span>
-        </div>
+            <ul className="mt-5 flex-1 space-y-2.5">
+              {plan.features.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-meta text-ink-muted">
+                  <Check />
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-6">
+              {plan.name === "Free" ? (
+                <Button href="/#top" variant="ghost" size="lg" className="w-full">
+                  Start a free scan
+                </Button>
+              ) : plan.name === "Credits" ? (
+                stripeReady ? (
+                  <CheckoutButton action={startCreditCheckout} variant="ghost">
+                    Buy 15 scans
+                  </CheckoutButton>
+                ) : (
+                  <ComingSoon />
+                )
+              ) : stripeReady ? (
+                <CheckoutButton action={startSubscriptionCheckout}>Subscribe</CheckoutButton>
+              ) : (
+                <ComingSoon />
+              )}
+            </div>
+          </div>
+        ))}
       </Reveal>
 
       <p className="mt-12 font-mono text-mono text-ink-dim">

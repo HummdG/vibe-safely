@@ -1,4 +1,4 @@
-import type { ScanResult } from "@/lib/scan/types";
+import type { ScanResult } from "@vibesafely/scan-core";
 
 // A real-shaped example result rendered through the actual <Report> component, so the
 // landing page shows the product instead of describing it. It's a full (owned) deep scan

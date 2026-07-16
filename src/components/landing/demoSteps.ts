@@ -1,4 +1,4 @@
-import type { ScanResult } from "@/lib/scan/types";
+import type { ScanResult } from "@vibesafely/scan-core";
 // Relative (not @/) so this pure module resolves under the node-env Vitest suite.
 import { deriveReport } from "../report/model";
 

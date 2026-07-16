@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -40,6 +41,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# workspace build output
+packages/*/dist
 
 # local-only vulnerable scan target (contains decoy secrets; deploy separately)
 /vuln-demo

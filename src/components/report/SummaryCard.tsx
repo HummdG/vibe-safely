@@ -1,4 +1,4 @@
-import type { ScanResult } from "@/lib/scan/types";
+import type { ScanResult } from "@vibesafely/scan-core";
 import type { ReportModel } from "./model";
 import { Panel } from "../ui/Panel";
 import { GradeTile } from "./GradeTile";
